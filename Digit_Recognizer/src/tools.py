@@ -21,4 +21,6 @@ def load_data(data_dir):
 
 
 
+
+
 load_data('../dataSet')
