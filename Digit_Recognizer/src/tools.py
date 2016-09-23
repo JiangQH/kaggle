@@ -1,26 +1,16 @@
 import numpy as np
-import os.path as osp
+import pandas as pd
 
-def load_data(data_dir):
-    train_data = open(osp.join(data_dir, 'train.csv')).read()
-    train_data = train_data.split("\n")[1:]
-    train_data = [i.split(",") for i in train_data]
-    print len(train_data)
-    test_data = open(osp.join(data_dir, 'test.csv')).read()
-    test_data = test_data.split("\n")[1:]
-    print len(test_data)
+def load_data(train_file, test_file):
+    train = pd.read_csv(train_file)
+    test = pd.read_csv(test_file)
+    y = train.label.values
+    X = train.iloc[:, 1:].values
+    test_x = test.values
+    print('Load training data ' + str(len(y)) + ', testing data ' + str(len(test_x)))
+    y = np.array(y)
+    X = np.array(X)
+    test_x = np.array(test_x)
 
-    X_train = np.array([[int(i[j]) for j in range(1, len(i))] for i in train_data]) # each row is a pic
-    y_train = np.array(int(i[0]) for i in train_data) # each row is a label
-    print X_train.shape, y_train.shape
+    return y, X, test_x
 
-    X_test = np.array([[int(i[j]) for j in range(0, len(i))] for i in test_data]) # each row is a pic to predict
-    print X_test.shape
-
-    return X_train, y_train, X_test
-
-
-
-
-
-load_data('../dataSet')
