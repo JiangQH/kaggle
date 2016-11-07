@@ -8,8 +8,8 @@ def load_data(train_path, test_path):
     :param test_path: the path to test file
     :return: train_X, train_y, test_X
     """
-    train = pd.read_csv('../dataset/train.csv')
-    test = pd.read_csv('../dataset/test.csv')
+    train = pd.read_csv(train_path)
+    test = pd.read_csv(test_path)
 
     train_X = train.iloc[:, 1:].values
     train_X = np.float32(train_X) # each row is a pic
@@ -42,6 +42,9 @@ def vis_data(data, label):
             plt.axis("off")
             plt.subplots_adjust(wspace = 1.5)
     plt.show()
+
+
+
 
 
 
