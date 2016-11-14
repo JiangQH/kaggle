@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 class DataHandler:
     """
     Simple data handler, used to load, write and display the data
@@ -29,8 +28,12 @@ class DataHandler:
 
         return train_X, train_y, test_X
 
+    def write_data(self, prediction, outputname):
+        dataframe = pd.DataFrame({"ImageId": range(1,len(prediction)+1), "Label": prediction})
+        dataframe.to_csv(outputname, index=False, header=True)
 
-    def vis_data(data, label):
+
+    def vis_data(slef, data, label):
         """
         :param data:  the X feature data (m * n)
         :param label: the corresponding label (m * 1)
