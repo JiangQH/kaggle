@@ -33,7 +33,7 @@ class DataHandler:
         dataframe.to_csv(outputname, index=False, header=True)
 
 
-    def vis_data(slef, data, label):
+    def vis_data(self, data, label):
         """
         :param data:  the X feature data (m * n)
         :param label: the corresponding label (m * 1)
@@ -48,14 +48,22 @@ class DataHandler:
                 l = label[index]
                 img = data[index].reshape((28, 28))
                 plt.subplot(count, count, idx)
-                plt.imshow(np.uint8(img))
+                plt.imshow(np.uint8(img), cmap=cm.binary)
                 plt.title(l)
                 plt.axis("off")
                 plt.subplots_adjust(wspace = 1.5)
         plt.show()
 
+    def preprocess(self, data, scale=255.0):
+	data = np.multiply(data, 1.0 / scale)
+	return data
 
-
+    def dense_to_one_hot(self, labels, labelcount):
+	num_labels = labels.shape[0]
+	index_offset = np.arange(num_labels) * labelcount
+	labels_one_hot =  np.zeros((num_labels, labelcount))
+	labels_one_hot.flat[index_offset + labels.ravel()] = 1
+	return labels_one_hot
 
 
 

@@ -36,16 +36,14 @@ def relu(x):
 	return tf.nn.relu(x)
 
 
-def dense_to_one_hot(labels, labelcount):
-	num_labels = labels.shape[0]
-	index_offset = np.arange(num_labels) * labelcount
-	labels_one_hot =  np.zeros((num_labels, labelcount))
-	labels_one_hot.flat[index_offset + labels.ravel()] = 1
-	return labels_one_hot
 
 
 # define the model
 def model(data, keep_prob):
+	# the model is 
+	# data --> conv1(5,5,32) --> relu1 --> pool1(2,2) --> conv2(5, 5, 64)
+	# --> relu2 --> pool2(2,2) --> flaten --> fc1(4096) --> relu_fc1 --> dropout_fc1
+	# --> fc2(10) --> softmax(prediciton)
 	# data is the input here
 	
 	# the first conv layer with relu followed
@@ -96,23 +94,106 @@ def model(data, keep_prob):
 	
 	return fc2
 
+def next_batch(batch_size, num_examples):
+	global X_train
+	global y_train
+	global index_in_epoch
+	global epochs_completed
+	start = index_in_epoch
+	index_in_epoch += batch_size
+	if index_in_epoch > num_examples:
+		epochs_completed += 1
+		# shuffle the data
+		perm = np.arange(num_examples)
+		np.random.shuffle(perm)
+		X_train = X_train(perm)
+		y_train = y_train(perm)
+		# start from begining
+		start = 0
+		index_in_epoch = batch_size
+		assert batch_size <= num_examples
+	end = index_in_epoch
+	return X_train[start:end], y_train[start:end]
+	
+	
+
 
 def main(_):
+	# some params
+	TEST_SIZE_RATIO = 0.1
+	LEARNING_RATE = 1e-4
+	TRAINING_ITERATIONS = 25000
+	DISPLAY = 10
+	DROPOUT = 0.5
 	# get the data
 	dh = DataHandler()
 	train_X, train_y, test_X = dh.load_data('../dataset/train.csv', '../dataset/test.csv')
+	dh.preprocess(train_X)
+	dh.preprocess(test_X)	
 	# split the data into train and val
-	X_train, y_train, X_val, y_val = train_test_split(train_X, train_y, random_state=42, test_size=0.1)
-	img_size = X_train.shape[1]
+	X_train, y_train, X_val, y_val = train_test_split(train_X, train_y, random_state=42, test_size=TEST_SIZE_RATIO)
+	# handle the y label to dense to one
 	label_count = np.unique(y_train).shape[0]
-	y_train = dense_to_one_hot(y_train, 10)
-	y_val = dense_to_one_hot(y_val, 10)
-	print 'training size {}'.format(X_train.shape)
-	print 'val size {}'.format(X_val.shape)
-	x = tf.placeholder('float', shape=[None, img_size])
-	y_ = tf.placeholder('float', shape=[None, label_count])
-	# load the model
+	y_train = dh.dense_to_one_hot(y_train, label_count)
+	y_val = dense_to_one_hot(y_val, label_count)
+	# get the width and height of imgs
+	img_width = img_height = np.ceil(np.sqrt(X_train.shape[1])).astype(np.uint8)
+	num = X_train.shape[0]
+	print 'training data size {}'.format(X_train.shape)
+	print 'val data size {}'.format(X_val.shape)
 	
+
+	# below is the model
+	# the input and output of the NN
+	# images
+	x = tf.placeholder('float', shape=[None, img_size])
+	# labels
+	y_ = tf.placeholder('float', shape=[None, label_count])
+	# reshape the data
+	data = tf.reshape(x, [-1, img_width, img_height, 1])
+	keep_prob = tf.placeholder('float')
+	fc2 = model(data, keep_prob)	
+	y = tf.nn.softmax(fc2)
+	print 'y with shape {}'.format(y.get_shape())
+	# cost function
+	cross_entropy = -tf.reduce_sum(y_*tf.log(y))
+	# optimization fucntion
+	train_step = tf.train.AdaOptimizer(LEARNING_RATE).minimize(cross_entropy)
+	# eval
+	predict = tf.argmax(y, 1)
+	tlabel = tf.argmax(y_, 1)
+	correct_prediction = tf.equal(predcit, tlabel)
+	accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))
+	# init
+	init = tf.initialize_all_variables()
+	sess = tf.InteractiveSession()
+	sess.run(init)
+	
+	# record the accuracy
+	train_accuracies = []
+	val_accuracies = []
+	x_range = []
+	for step in range(TRAINING_ITERATIONS):
+		# get the data
+		batch_x, batch_y = next_batch(BATCH_SIZE, num)
+		# check whether to display the accuracy
+		if step % DISPLAY == 0 or (step+1) == TRAINING_ITERATIONS:
+			train_accuracy = accuracy.eval(feed_dict={x: batch_x,
+								 y_: batch_y,
+								 keep_prob: 1.0})
+			val_accuracy = accuracy.eval(feed_dict={x: X_val,
+								y_: y_val,
+								keep_prob: 1.0})
+			print ('training accuracy / val accuracy => %.2f
+				/ %.2f for step %d' % (train_accuracy, val_accuracy, step))
+			train_accuracies.append(train_accuracy)
+			val_accuracies.append(val_accuracy)
+			x_range.append(step)
+		sess.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_ratio:DROPOUT})
+
+
+
+
 
 
 
