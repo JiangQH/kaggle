@@ -29,7 +29,7 @@ class DataHandler:
         return train_X, train_y, test_X
 
     def write_data(self, prediction, outputname):
-        dataframe = pd.DataFrame({"ImageId": range(1,len(prediction)+1), "Label": prediction})
+        dataframe = pd.DataFrame({"ImageId": range(1,len(prediction)+1), "Label": np.uint8(prediction)})
         dataframe.to_csv(outputname, index=False, header=True)
 
 
@@ -55,15 +55,15 @@ class DataHandler:
         plt.show()
 
     def preprocess(self, data, scale=255.0):
-	data = np.multiply(data, 1.0 / scale)
-	return data
+	    data = np.multiply(data, 1.0 / scale)
+	    return data
 
     def dense_to_one_hot(self, labels, labelcount):
-	num_labels = labels.shape[0]
-	index_offset = np.arange(num_labels) * labelcount
-	labels_one_hot =  np.zeros((num_labels, labelcount))
-	labels_one_hot.flat[index_offset + labels.ravel()] = 1
-	return labels_one_hot
+	    num_labels = labels.shape[0]
+	    index_offset = np.arange(num_labels) * labelcount
+	    labels_one_hot =  np.zeros((num_labels, labelcount))
+	    labels_one_hot.flat[index_offset + labels.ravel()] = 1
+	    return labels_one_hot
 
 
 

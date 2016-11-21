@@ -30,3 +30,5 @@ test_X = pca.transform(test_X)
 prediction = logistic.predict(test_X)
 # write to the file
 dh.write_data(prediction, '../dataset/out.csv')
+
+
