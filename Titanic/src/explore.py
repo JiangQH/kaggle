@@ -62,6 +62,22 @@ plt.show()
 print train.Survived.value_counts()
 
 
+# show survived/not survived distribution with age
+fig = plt.figure(figsize=(12, 5))
+train[train.Survived == 0].Age.value_counts().plot(kind='density', color='#FA2379',
+                                                   label='Not survived', alpha=alpha)
+train[train.Survived == 1].Age.value_counts().plot(kind='density', label='Survived', alpha=alpha)
+plt.xlabel('Age')
+plt.title('Age distribution')
+plt.legend(loc='best')
+plt.grid()
+plt.show()
+
+# show the survived/not survived with sex
+fig = plt.figure(figsize=(15, 6))
+
+
+
 
 
 
