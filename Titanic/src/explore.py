@@ -189,6 +189,7 @@ test.Age.value_counts().plot(kind='kde', label='test', alpha=alpha)
 ax1.set_xlabel('Age')
 ax1.set_title('age distribution')
 plt.legend(loc='best')
+plt.show()
 # get the mean / std for train and test
 mean_train = train['Age'].mean()
 val_train = train['Age'].std()
@@ -200,8 +201,9 @@ null_count_test = test['Age'].isnull().sum()
 rand_train = np.random.randint((mean_train-val_train), (mean_train+val_train), null_count_train)
 rand_test = np.random.randint((mean_test- val_test), (mean_test + val_test), null_count_test)
 # fill it
-train['Age'] = train['Age'].fillna(rand_train)
-test['Age'] = test['Age'].fillna(rand_test)
+train['Age'][train['Age'].isnull()] = rand_train
+test['Age'][test['Age'].isnull()] = rand_test
+
 
 
 
