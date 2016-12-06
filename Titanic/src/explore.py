@@ -1,6 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 
 train = pd.read_csv('../dataset/train.csv')
 test = pd.read_csv('../dataset/test.csv')
@@ -181,15 +185,15 @@ test.drop(['Parch'], axis=1, inplace=True)
 
 
 # the age data
-fig = plt.figure(figsize=(15, 4))
-alpha = 0.6
-ax1 = plt.subplot2grid((2, 3), (0, 0))
-train.Age.value_counts().plot(kind='kde', color='#FA2379', label='train', alpha=alpha)
-test.Age.value_counts().plot(kind='kde', label='test', alpha=alpha)
-ax1.set_xlabel('Age')
-ax1.set_title('age distribution')
-plt.legend(loc='best')
-plt.show()
+#fig = plt.figure(figsize=(15, 4))
+#alpha = 0.6
+#ax1 = plt.subplot2grid((2, 3), (0, 0))
+#train.Age.value_counts().plot(kind='kde', color='#FA2379', label='train', alpha=alpha)
+#test.Age.value_counts().plot(kind='kde', label='test', alpha=alpha)
+#ax1.set_xlabel('Age')
+#ax1.set_title('age distribution')
+#plt.legend(loc='best')
+#plt.show()
 # get the mean / std for train and test
 mean_train = train['Age'].mean()
 val_train = train['Age'].std()
@@ -203,7 +207,49 @@ rand_test = np.random.randint((mean_test- val_test), (mean_test + val_test), nul
 # fill it
 train['Age'][train['Age'].isnull()] = rand_train
 test['Age'][test['Age'].isnull()] = rand_test
+train['Age'] = train['Age'].astype(int)
+test['Age'] = test['Age'].astype(int)
 
+#the Sex data
+def get_person(passenger):
+    age, sex = passenger
+    return 'child' if age < 16 else sex
+train['Person'] = train[['Age', 'Sex']].apply(get_person, axis=1)
+test['Person'] = test[['Age', 'Sex']].apply(get_person, axis=1)
+train.drop(['Sex'], axis=1, inplace=True)
+test.drop(['Sex'], axis=1, inplace=True)
+person_dummies_train = pd.get_dummies(train['Person'])
+person_dummies_test = pd.get_dummies(test['Person'])
+person_dummies_train.columns = ['Child', 'Female', 'Male']
+person_dummies_test.columns = ['Child', 'Female', 'Male']
+train = train.join(person_dummies_train)
+test = test.join(person_dummies_test)
+
+# the pclass data
+pclass_dummies_train = pd.get_dummies(train['Pclass'])
+pclass_dummies_train.columns = ['Class1', 'Class2', 'Class3']
+pclass_dummies_test = pd.get_dummies(test['Pclass'])
+pclass_dummies_test.columns = ['Class1', 'Class2', 'Class3']
+train = train.join(pclass_dummies_train)
+test = test.join(pclass_dummies_test)
+train.drop(['Pclass'], axis=1, inplace=True)
+test.drop(['Pclass'], axis=1, inplace=True)
+
+# the train and test data
+X_train = train.drop(['Survived'], axis=1)
+y_train = train['Survived']
+X_test = test.drop(['PassengerId'], axis=1)
+passenger_id = test['PassengerId']
+
+# train multiple classifier? compare
+logreg = LogisticRegression()
+logreg.fit(X_train, y_train)
+logreg.score(X_train, y_train)
+
+#random forests
+random_forest = RandomForestClassifier(n_estimators=100)
+random_forest.fit(X_train, y_train)
+random_forest.score(X_train, y_train)
 
 
 
