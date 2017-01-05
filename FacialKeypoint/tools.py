@@ -32,6 +32,9 @@ class SimpleTools(object):
                     (12, 16), (13, 17), (14, 18), (15, 19),(22, 24), (23, 25))
         }
 
+        self.scale = 255
+        self.constant = 48
+
     def load_data(self, path, phase='Train', select=None):
         """
         the load data phase. transform data to 96 * 96
@@ -41,7 +44,7 @@ class SimpleTools(object):
         :return:
         """
         df = pandas.read_csv(path)
-        print df.count()
+        #print df.count()
         if select is not None:
             df = df[list(self.dict[select]) + ['Image']]
         df = df.dropna()  # drop the nan
@@ -73,7 +76,6 @@ class SimpleTools(object):
         """
         # flip the X
         X_s = X[:, ::-1]
-        # flip the y, the y_axis should be swapped while the x_axis should be flipped
         y_s = y.copy()
         y_s[0::2] = X_s.shape[0] - y_s[0::2]
         if select is None:
@@ -83,17 +85,18 @@ class SimpleTools(object):
             temp = y_s[flip[0]]
             y_s[flip[0]] = y_s[flip[1]]
             y_s[flip[1]] = temp
+        # flip the y, the y_axis should be swapped while the x_axis should be flipped
         return X_s, y_s
 
 
 
-train_X, train_y = SimpleTools().load_data('./data/training.csv')
-fig = plt.figure(figsize=(6, 3))
-ax = fig.add_subplot(1, 2, 1, xticks=[], yticks=[])
-X, y = train_X[0], train_y[0]
-SimpleTools().plot(X, y, ax)
+    def preprocess(self, X, y=None):
+        X = X / self.scale
+        if y is not None:
+            y = (y - self.constant) / self.constant
+            return X, y
+        return X
 
-X_f, y_f = SimpleTools().flipImage(X, y)
-ax = fig.add_subplot(1, 2, 2, xticks=[], yticks=[])
-SimpleTools().plot(X_f, y_f, ax)
-test = SimpleTools().load_data('./data/test.csv')
+
+
+
