@@ -103,7 +103,7 @@ class BatchLoader(object):
         if self.random_flip:
             im, label = self.transformer.flipImage(im, label, self.selection)
         self.cur += 1
-        return im, label
+        return self.transformer.preprocess(im, label)
 
 
 
