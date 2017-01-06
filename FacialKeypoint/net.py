@@ -1,7 +1,8 @@
 from tools import SimpleTools as ST
-from keras.engine.topology import Layer
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator, NumpyArrayIterator
+from keras.models import Sequential
+from keras.layers import Convolution2D, Activation, Dense, Flatten, Dropout, MaxPooling2D, ZeroPadding2D
 
 class MyArrayIterator(NumpyArrayIterator):
     def __init__(self, X, y, image_data_generator,
@@ -56,6 +57,63 @@ class FlippedImageDataGenerator(ImageDataGenerator):
             batch_size=batch_size, shuffle=shuffle, seed=seed,
             dim_ordering=self.dim_ordering,
             save_to_dir=save_to_dir, save_prefix=save_prefix, save_format=save_format, flip_indices=self.flip)
+
+
+def generateVgg16Model():
+    # the vgg-16 model structure
+    # should we use the resized batch? or just it?
+    model = Sequential()
+    # conv1
+    model.add(ZeroPadding2D((1, 1), input_shape=(1, 96, 96)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    # conv2
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    # conv3
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    # conv4
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    # conv5
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D(1, 1))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    # fc
+    model.add(Flatten())
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(30))
+
+
+
 
 
 
