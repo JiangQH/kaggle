@@ -92,10 +92,19 @@ class SimpleTools(object):
 
     def preprocess(self, X, y=None):
         X = X / self.scale
+        X = X.transpose(2, 0, 1)
         if y is not None:
             y = (y - self.constant) / self.constant
             return X, y
         return X
+
+    def getOutNum(self, split='all'):
+        outs = {'all': 30, 'eye_center': 4,
+                    'nose': 2, 'mouth': 6,
+                    'mouth_bottom': 2,
+                    'eye_inner': 8,
+                    'eye_outer': 8}
+        return outs[split]
 
 
 

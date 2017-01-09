@@ -1,127 +1,99 @@
 from tools import SimpleTools as ST
-import numpy as np
-from keras.preprocessing.image import ImageDataGenerator, NumpyArrayIterator
-from keras.models import Sequential
-from keras.layers import Convolution2D, Activation, Dense, Flatten, Dropout, MaxPooling2D, ZeroPadding2D
+from randomFlipImageAndLabelDataLayer import RandomFlipImageAndLabelDataLayerSys
+from caffe import layers as L, params as P
+import caffe
+import tempfile
 
-class MyArrayIterator(NumpyArrayIterator):
-    def __init__(self, X, y, image_data_generator,
-                 batch_size=32, shuffle=False, seed=None,
-                 dim_ordering='default',
-                 save_to_dir=None, save_prefix='', save_format='jpeg', flip_indices=None):
-        super(MyArrayIterator, self).__init__(X, y,batch_size, shuffle, seed, dim_ordering,save_to_dir,
-                                              save_prefix, save_format)
-        self.flip_indices = flip_indices
+weight_param = dict(lr_mult=1, decay_mult=1)
+bias_param = dict(lr_mult=2, decay_mult=0)
+params = [weight_param, bias_param]
 
-    def next(self):
-        batch_X, batch_y = super(MyArrayIterator, self).next()
-        # flip them there
-        batch_size = batch_X.shape[0]
-        S = batch_X.shape[1]
-        indices = np.random.choice(batch_size, batch_size/2, replace=False)
-        batch_X[indices] = batch_X[indices, :, :, ::-1]
+def conv_relu(bottom, ks, nout, stride=1, pad=0, group=1,
+              param=params, weight_filler=dict(type='gaussian', std=0.01),
+              bias_filler=dict(type='constant', value=0.1)):
+    conv = L.Convolution(bottom, kernel_size=ks, stride=stride,
+                         num_output=nout, pad=pad, group=group,
+                         param=param, weight_filler=weight_filler,
+                         bias_filler=bias_filler)
+    return conv, L.ReLU(conv, in_place=True)
 
-        if batch_y is not None:
-            batch_y[indices, ::2] = S - batch_y[indices, ::2]
-            for flip in self.flip_indices:
-                batch_y[indices, flip[0]], batch_y[indices, flip[1]] = (
-                    batch_y[indices, flip[1]], batch_y[indices, flip[0]]
-                )
-        return batch_X, batch_y
+def fc_relu(bottom, nout, param=params,
+            weight_filler=dict(type='gaussian', std=0.01),
+            bias_filler=dict(type='constant', value=0.1)):
+    fc = L.InnerProduct(bottom, num_output=nout, param=param,
+                        weight_filler=weight_filler, bias_filler=bias_filler)
+    return fc, L.ReLU(fc, in_place=True)
 
+def max_pooling(bottom, ks, stride=1):
+    return L.Pooling(bottom, pool=P.Pooling.MAX,
+                     kernel_size=ks, stride=stride)
 
+# define the net
+train_datapath = './data/training.csv'
+test_datapath = './data/test.csv'
+def mynet(split='train', batch_size=128, im_shape=(96, 96),
+                 selection='all', random_flip=True):
+    num_output = ST().getOutNum(selection)
+    net = caffe.NetSpec()
+    data_path = train_datapath if split == 'train' else test_datapath
+    param_str = {'split':split, 'batch_size':batch_size, 'path':data_path,
+                 'im_shape': im_shape, 'selection': selection, 'random_flip': random_flip}
+    python_param = dict(module='randomFlipImageAndLabelDataLayer',
+                        layer='RandomFlipImageAndLabelDataLayerSys',
+                        param_str=str(param_str))
+    # note here, caffe seems not provide with multiple top, so need to change the prototxt by hand
+    net.data = L.Python(python_param=python_param)
 
-
-class FlippedImageDataGenerator(ImageDataGenerator):
-
-    def flip_indices(self, flip=None):
-        if flip is not None:
-            self.flip = flip
-        else:
-            self.flip = [
-                (0, 2), (1, 3),
-                (4, 8), (5, 9), (6, 10), (7, 11),
-                (12, 16), (13, 17), (14, 18), (15, 19),
-                (22, 24), (23, 25),
-                ]
-
-
-    def flow(self, X, y=None, batch_size=32, shuffle=True, seed=None,
-             save_to_dir=None, save_prefix='', save_format='jpeg'):
-        try:
-            self.flip
-        except NameError:
-            self.flip_indices()
-
-        return MyArrayIterator( X, y, self,
-            batch_size=batch_size, shuffle=shuffle, seed=seed,
-            dim_ordering=self.dim_ordering,
-            save_to_dir=save_to_dir, save_prefix=save_prefix, save_format=save_format, flip_indices=self.flip)
-
-
-def generateVgg16Model():
-    # the vgg-16 model structure
-    # should we use the resized batch? or just it?
-    model = Sequential()
     # conv1
-    model.add(ZeroPadding2D((1, 1), input_shape=(1, 96, 96)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    net.conv1_1, net.relu1_1 = conv_relu(net.data, ks=3, nout=64, pad=1)
+    net.conv1_2, net.relu1_2 = conv_relu(net.relu1_1, ks=3, nout=64, pad=1)
+    net.pool1 = max_pooling(net.relu1_2, ks=2, stride=2)
 
-    # conv2
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    #conv2
+    net.con2_1, net.relu2_1 = conv_relu(net.pool1, ks=3, nout=128, pad=1)
+    net.conv2_2, net.relu2_2 = conv_relu(net.relu2_1, ks=3, nout=128, pad=1)
+    net.pool2 = max_pooling(net.relu2_2, ks=2, stride=2)
 
-    # conv3
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    #conv3
+    net.conv3_1, net.relu3_1 = conv_relu(net.pool2, ks=3, nout=256, pad=1)
+    net.conv3_2, net.relu3_2 = conv_relu(net.relu3_1, ks=3, nout=256, pad=1)
+    net.conv3_3, net.relu3_3 = conv_relu(net.relu3_2, ks=3, nout=256, pad=1)
+    net.pool3 = max_pooling(net.relu3_3, ks=2, stride=2)
 
-    # conv4
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    #conv4
+    net.conv4_1, net.relu4_1 = conv_relu(net.pool3, ks=3, nout=512, pad=1)
+    net.conv4_2, net.relu4_2 = conv_relu(net.relu4_1, ks=3, nout=512, pad=1)
+    net.conv4_3, net.relu4_3 = conv_relu(net.relu4_2, ks=3, nout=512, pad=1)
+    net.pool4 = max_pooling(net.relu4_3, ks=2, stride=2)
 
-    # conv5
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D(1, 1))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    #conv5
+    net.conv5_1, net.relu5_1 = conv_relu(net.pool4, ks=3, nout=512, pad=1)
+    net.conv5_2, net.relu5_2 = conv_relu(net.relu5_1, ks=3, nout=512, pad=1)
+    net.conv5_3, net.relu5_3 = conv_relu(net.relu5_2, ks=3, nout=512, pad=1)
+    net.pool5 = max_pooling(net.relu5_3, ks=2, stride=2)
 
-    # fc
-    model.add(Flatten())
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(30))
+    # below the self define
+    net.fc1, net.relu1 = fc_relu(net.pool5, nout=500)
+    if split == 'train':
+        net.drop1 = fc2input = L.Dropout(net.relu1, in_place=True)
+    else:
+        fc2input = net.relu1
+    net.fc2, net.relu2 = fc_relu(fc2input, nout=500)
+    if split == 'train':
+        net.drop2 = fc3input = L.Dropout(net.relu2, in_place=True)
+    else:
+        fc3input = net.relu2
+    net.fc3 = L.InnerProduct(fc3input, num_output=num_output, param=params)
+    # test and val have the same loss
+    if split == 'train':
+        net.loss = L.EuclideanLoss(net.fc3, net.data)
 
-
-
-
-
-
-
-
-
-
-
+    #with tempfile.NamedTemporaryFile(delete=False) as f:
+        #f.write(str(net.to_proto()))
+        #return f.name
+    with open('train.prototxt', 'w') as f:
+        f.write(str(net.to_proto()))
+        f.close()
 
 
 

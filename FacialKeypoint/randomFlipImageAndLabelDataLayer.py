@@ -12,21 +12,23 @@ class RandomFlipImageAndLabelDataLayerSys(caffe.Layer):
     the corresponding y values in facial key point dectection
     """
     def setup(self, bottom, top):
-        self.top_names = ['data', 'label']
-
         params = eval(self.param_str)
         # check it
         check_params(params)
         self.batch_size = params['batch_size']
         self.im_shape = params['im_shape']
+        self.split = params['split']
         # the batch loader
         self.batch_loader = BatchLoader(params)
-        # since the y label shape will change, so we must do
-        # load on data to judge the shape for top[1]
-        #
-        im, label = self.batch_loader.load_next_image_label()
-        top[0].reshape(self.batch_size, 1, self.im_shape[0], self.im_shape[1])
-        top[1].reshape(self.batch_size, len(label))
+        if self.split == 'train':
+            self.top_names = ['data', 'label']
+            im, label = self.batch_loader.load_next_image_label()
+            top[0].reshape(self.batch_size, 1, self.im_shape[0], self.im_shape[1])
+            top[1].reshape(self.batch_size, len(label))
+        else:
+            self.top_names = ['data']
+            top[0].reshape(self.batch_size, 1, self.im_shape[0], self.im_shape[1])
+
 
 
     def forward(self, bottom, top):
@@ -78,11 +80,14 @@ class BatchLoader(object):
         self.cur = 0    # the current position
         self.transformer = ST()
         # load all the data in, since it will not occupy much memory
-        self.X, self.y = self.transformer.load_data(self.path, self.split, self.selection)
-        self.total_len = self.X.shape[0]
-        self.sample_index = range(0, self.total_len)
-        shuffle(self.sample_index)
-        print 'BatchLoader loading {} images'.format(self.total_len)
+        if self.split == 'train':
+            self.X, self.y = self.transformer.load_data(self.path, self.split, self.selection)
+            self.total_len = self.X.shape[0]
+            self.sample_index = range(0, self.total_len)
+            shuffle(self.sample_index)
+            print 'BatchLoader loading {} images'.format(self.total_len)
+        else:
+            self.X = self.transformer.load_data(self.path, self.split, self.selection)
 
 
 
@@ -91,19 +96,24 @@ class BatchLoader(object):
         load the image and label, and decide whether to do the transform
         :return:
         """
-        if self.cur == self.total_len:
-            self.cur = 0
-            shuffle(self.sample_index)
+        if self.split == 'train':
+            if self.cur == self.total_len:
+                self.cur = 0
+                shuffle(self.sample_index)
 
-        # load img and the y label
-        index = self.sample_index[self.cur]
-        im = self.X[index, :]
-        label = self.y[index, :]
-        # do a random flip, if the random flip is set
-        if self.random_flip:
-            im, label = self.transformer.flipImage(im, label, self.selection)
-        self.cur += 1
-        return self.transformer.preprocess(im, label)
+            # load img and the y label
+            index = self.sample_index[self.cur]
+            im = self.X[index, :]
+            label = self.y[index, :]
+            # do a random flip, if the random flip is set
+            if self.random_flip:
+                im, label = self.transformer.flipImage(im, label, self.selection)
+            self.cur += 1
+            return self.transformer.preprocess(im, label)
+        else:
+            im = self.X[self.cur, :]
+            self.cur += 1
+            return self.transformer.preprocess(im)
 
 
 
