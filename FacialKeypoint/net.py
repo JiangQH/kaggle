@@ -90,10 +90,11 @@ def mynet(data_path, split='train', batch_size=128, im_shape=(96, 96),
     if not split == 'deploy':
         net.loss = L.EuclideanLoss(net.fc3, net.label)
 
-    file_name = osp.join(model_dir, split+'.prototxt')
+    file_name = osp.join(model_dir, split+selection+'.prototxt')
     with open(file_name, 'w') as f:
         f.write(str(net.to_proto()))
         f.close()
+        return f.name
 
 
 

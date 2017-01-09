@@ -1,6 +1,7 @@
 import pandas
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 class SimpleTools(object):
     def __init__(self):
@@ -51,7 +52,7 @@ class SimpleTools(object):
         X_s = df['Image'].values
         X = [np.fromstring(iterm, sep=' ').reshape((96, 96)) for iterm in X_s]
         df = df[df.columns[:-1]] # remove the Image column
-        if phase == 'Train':
+        if not phase == 'Test':
             y = df.values
             return np.asarray(X), np.asarray(y)
         return np.asarray(X)
@@ -106,6 +107,28 @@ class SimpleTools(object):
                     'eye_inner': 8,
                     'eye_outer': 8}
         return outs[split]
+
+
+    def splitTrainingData(self, path, select=None):
+        """
+        split the training data into train and val
+        :param select:
+        :return:
+        """
+        df = pandas.read_csv(path)
+        if self is not None:
+            df = df[list(self.dict[self]) + 'Image']
+        df.dropna()
+        X_s = df['Image'].values
+        X = [np.fromstring(iterm, sep=' ').reshape((96, 96)) for iterm in X_s]
+        df = df[df.columns[:-1]]
+        y = df.values
+
+        X = np.asarray(X)
+        y = np.asarray(y)
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1)
+        # write to file with the name holds
+
 
 
 
