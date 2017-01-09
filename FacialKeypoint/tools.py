@@ -56,6 +56,7 @@ class SimpleTools(object):
             return np.asarray(X), np.asarray(y)
         return np.asarray(X)
 
+
     def plot(self, X, y, axis):
         """
         plot the img and the y point in img

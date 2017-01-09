@@ -2,11 +2,14 @@ from tools import SimpleTools as ST
 from randomFlipImageAndLabelDataLayer import RandomFlipImageAndLabelDataLayerSys
 from caffe import layers as L, params as P
 import caffe
-import tempfile
+import os.path as osp
 
 weight_param = dict(lr_mult=1, decay_mult=1)
 bias_param = dict(lr_mult=2, decay_mult=0)
 params = [weight_param, bias_param]
+
+frozen_param = [dict(lr_mult=0)] * 2
+model_dir = './model'
 
 def conv_relu(bottom, ks, nout, stride=1, pad=0, group=1,
               param=params, weight_filler=dict(type='gaussian', std=0.01),
@@ -29,21 +32,20 @@ def max_pooling(bottom, ks, stride=1):
                      kernel_size=ks, stride=stride)
 
 # define the net
-train_datapath = './data/training.csv'
-test_datapath = './data/test.csv'
-def mynet(split='train', batch_size=128, im_shape=(96, 96),
-                 selection='all', random_flip=True):
+def mynet(data_path, split='train', batch_size=128, im_shape=(96, 96),
+                 selection='all', random_flip=True, from_scratch=False):
     num_output = ST().getOutNum(selection)
     net = caffe.NetSpec()
-    data_path = train_datapath if split == 'train' else test_datapath
-    param_str = {'split':split, 'batch_size':batch_size, 'path':data_path,
+    param_str = {'batch_size':batch_size, 'path': data_path,
                  'im_shape': im_shape, 'selection': selection, 'random_flip': random_flip}
     python_param = dict(module='randomFlipImageAndLabelDataLayer',
                         layer='RandomFlipImageAndLabelDataLayerSys',
                         param_str=str(param_str))
-    # note here, caffe seems not provide with multiple top, so need to change the prototxt by hand
-    net.data = L.Python(python_param=python_param)
 
+    if split == 'deploy':
+        net.data = L.DummyData(shape=dict(dim=[1, 1, im_shape[0], im_shape[1]]))
+    else:
+        net.data, net.label = L.Python(python_param=python_param, ntop=2)
     # conv1
     net.conv1_1, net.relu1_1 = conv_relu(net.data, ks=3, nout=64, pad=1)
     net.conv1_2, net.relu1_2 = conv_relu(net.relu1_1, ks=3, nout=64, pad=1)
@@ -85,15 +87,18 @@ def mynet(split='train', batch_size=128, im_shape=(96, 96),
         fc3input = net.relu2
     net.fc3 = L.InnerProduct(fc3input, num_output=num_output, param=params)
     # test and val have the same loss
-    if split == 'train':
-        net.loss = L.EuclideanLoss(net.fc3, net.data)
+    if not split == 'deploy':
+        net.loss = L.EuclideanLoss(net.fc3, net.label)
 
-    #with tempfile.NamedTemporaryFile(delete=False) as f:
-        #f.write(str(net.to_proto()))
-        #return f.name
-    with open('train.prototxt', 'w') as f:
+    file_name = osp.join(model_dir, split+'.prototxt')
+    with open(file_name, 'w') as f:
         f.write(str(net.to_proto()))
         f.close()
+
+
+
+
+
 
 
 
