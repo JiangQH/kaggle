@@ -92,6 +92,7 @@ class BatchLoader(object):
 
         if self.cur == self.total_len:
             self.cur = 0
+            print 'the whole dataset traveled, shuffing the dataset'
             shuffle(self.sample_index)
 
             # load img and the y label
