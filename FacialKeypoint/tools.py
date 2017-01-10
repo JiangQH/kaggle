@@ -2,6 +2,8 @@ import pandas
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+import h5py
+import os.path as osp
 
 class SimpleTools(object):
     def __init__(self):
@@ -58,15 +60,18 @@ class SimpleTools(object):
         return np.asarray(X)
 
 
-    def plot(self, X, y, axis):
+    def plot(self, X, y):
         """
         plot the img and the y point in img
         :param X:
         :param y:
         :return:
         """
-        axis.scatter(y[0::2], y[1::2], marker='x', s=10)
-        axis.imshow(X, cmap='gray')
+        plt.figure()
+        plt.imshow(X, cmap='gray')
+        plt.scatter(y[0::2], y[1::2], marker='x', s=10)
+        plt.show()
+
 
     def flipImage(self, X, y, select=None):
         """
@@ -93,10 +98,16 @@ class SimpleTools(object):
 
 
     def preprocess(self, X, y=None):
-        X = X / self.scale
-        X = X.transpose(2, 0, 1)
+        X /= self.scale
         if y is not None:
             y = (y - self.constant) / self.constant
+            return X, y
+        return X
+
+    def umcompress(self, X, y=None):
+        X *= self.scale
+        if y is not None:
+            y = y * self.constant + self.constant
             return X, y
         return X
 
@@ -116,18 +127,39 @@ class SimpleTools(object):
         :return:
         """
         df = pandas.read_csv(path)
-        if self is not None:
-            df = df[list(self.dict[self]) + 'Image']
-        df.dropna()
+        if select is None:
+            select = 'all'
+        if select is not 'all':
+            df = df[list(self.dict[select]) + ['Image']]
+        df.dropna(inplace=True)
         X_s = df['Image'].values
         X = [np.fromstring(iterm, sep=' ').reshape((96, 96)) for iterm in X_s]
         df = df[df.columns[:-1]]
         y = df.values
-
+        label_names = list(df.columns.values)
         X = np.asarray(X)
         y = np.asarray(y)
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1)
         # write to file with the name holds
+        save_path = osp.dirname(osp.abspath(path))
+        train = h5py.File(osp.join(save_path, select + '_train.hdf5'), 'w')
+        train.create_dataset('data', data=X_train, dtype='f8')
+        train.create_dataset('label', data=y_train, dtype='f8')
+        train.create_dataset('attr', data=label_names, dtype='S10')
+        train.close()
+
+        val = h5py.File(osp.join(save_path, select+'_val.hdf5'), 'w')
+        val.create_dataset('data', data=X_val, dtype='f8')
+        val.create_dataset('label', data=y_val, dtype='f8')
+        val.create_dataset('attr', data=label_names, dtype='S10')
+        val.close()
+
+    def loadHdf5Data(self, path):
+        f = h5py.File(path, 'r')
+        #y = f['label'][:]
+        return f['data'][:], f['label'][:]
+
+
 
 
 

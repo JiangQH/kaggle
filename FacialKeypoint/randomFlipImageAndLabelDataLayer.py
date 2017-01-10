@@ -75,7 +75,7 @@ class BatchLoader(object):
         self.cur = 0    # the current position
         self.transformer = ST()
         # load all the data in, since it will not occupy much memory
-        self.X, self.y = self.transformer.load_data(self.path, self.selection)
+        self.X, self.y = self.transformer.loadHdf5Data(self.path)
         self.total_len = self.X.shape[0]
         self.sample_index = range(0, self.total_len)
         shuffle(self.sample_index)
