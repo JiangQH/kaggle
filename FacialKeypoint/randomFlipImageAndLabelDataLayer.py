@@ -101,8 +101,11 @@ class BatchLoader(object):
         label = self.y[index, :]
         # do a random flip, if the random flip is set
         if self.random_flip:
-            im, label = self.transformer.flipImage(im, label, self.selection)
-            self.cur += 1
+            # decide whether to do flip
+            choice = np.random.randint(2, size=1)[0]
+            if choice:
+                im, label = self.transformer.flipImage(im, label, self.selection)
+        self.cur += 1
         return self.transformer.preprocess(im, label)
 
 

@@ -129,7 +129,7 @@ class SimpleTools(object):
         df = pandas.read_csv(path)
         if select is None:
             select = 'all'
-        if select is not 'all':
+        if select != 'all':
             df = df[list(self.dict[select]) + ['Image']]
         df.dropna(inplace=True)
         X_s = df['Image'].values

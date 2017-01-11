@@ -152,8 +152,8 @@ def normalStyleNet(data_path = None, split='train', batch_size=128, im_shape=(96
 
 def solver(prefix, train_net_path, test_net_path=None, base_lr=0.001,
            test_interval=100000, test_iter=2, iter_size=1,
-           max_iter=100000, type='Nesterov', lr_policy='step',
-           gamma=0.1, stepsize=100000, momentum=0.9, power=0.75,
+           max_iter=100000, type='SGD', lr_policy='step',
+           gamma=0.1, stepsize=100000, momentum=0.9,
            weight_decay=5e-4, mode='gpu'):
     s = caffe_pb2.SolverParameter()
     s.train_net = osp.abspath(train_net_path)
@@ -168,7 +168,7 @@ def solver(prefix, train_net_path, test_net_path=None, base_lr=0.001,
     s.lr_policy = lr_policy
     s.base_lr = base_lr
     s.gamma = gamma
-    s.power = power
+    #s.power = power
     s.stepsize= stepsize
     s.momentum = momentum
     s.weight_decay = weight_decay

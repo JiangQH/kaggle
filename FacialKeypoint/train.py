@@ -1,4 +1,5 @@
 import caffe
+import caffe.draw
 import os.path as osp
 from net import vggStyleNet, solver, normalStyleNet
 from tools import SimpleTools as ST
@@ -8,22 +9,23 @@ import sys
 # but change the last fc layer to finetune
 model_dir = './model'
 
-def train(selection='all', style='Vgg', deviceid=0):
+def train(selection='all', style='vgg', deviceid=0):
     caffe.set_device(deviceid)
     caffe.set_mode_gpu()
     data_dir = './data'
     # the whole net work
     select = selection
-    print '----split the data set, train the whole net----'
-    ST().splitTrainingData(osp.join(data_dir, 'training.csv'), select=select)
+    print '----split the data set, train the {} data----'.format(selection)
+    #ST().splitTrainingData(osp.join(data_dir, 'training.csv'), select=select)
 
     if style == 'vgg':
-        train = vggStyleNet(osp.join(data_dir, select+'_train.hdf5'), split='train',
+        train_net = vggStyleNet(osp.join(data_dir, select+'_train.hdf5'), split='train',
                             batch_size=128, im_shape=(96, 96), selection=select,
                             random_flip=True)
-        val = vggStyleNet(osp.join(data_dir, select+'_val.hdf5'), split='val',
+        val_net = vggStyleNet(osp.join(data_dir, select+'_val.hdf5'), split='val',
                         batch_size=128, im_shape=(96, 96), selection=select,
                         random_flip=False)
+
         solver_file = caffe.get_solver(solver(prefix=select, train_net_path=train, test_net_path=val,
                         mode='gpu', base_lr=0))
 
@@ -46,11 +48,7 @@ def train(selection='all', style='Vgg', deviceid=0):
     val_loss = np.zeros(int(np.ceil(niter / test_interval)))
     display = 10
     snapshot = 10000
-    step_size = 20000
-    gamma = 0.1
     for it in range(niter):
-        if (it + 1) % step_size == 0:
-            solver_file.base_lr *= gamma
         solver_file.step(1)
         train_loss[it] = solver_file.net.blobs['loss'].data
         if it % display == 0 or it + 1 == niter:
@@ -71,6 +69,7 @@ def train(selection='all', style='Vgg', deviceid=0):
     np.savetxt('{}_vallog.txt'.format(style), val_loss)
 
 
+train()
 
 
 
