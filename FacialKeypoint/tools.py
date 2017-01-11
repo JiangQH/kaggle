@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import h5py
 import os.path as osp
+import os
+from random import shuffle
 
 class SimpleTools(object):
     def __init__(self):
@@ -140,6 +142,8 @@ class SimpleTools(object):
         X = np.asarray(X)
         y = np.asarray(y)
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1)
+
+        # save to disk
         # write to file with the name holds
         save_path = osp.dirname(osp.abspath(path))
         train = h5py.File(osp.join(save_path, select + '_train.hdf5'), 'w')
@@ -160,7 +164,70 @@ class SimpleTools(object):
         return f['data'][:], f['label'][:]
 
 
+    def splitTrainingDataToFile(self, path, select=None):
+        df = pandas.read_csv(path)
+        if select is None:
+            select = 'all'
+        if select != 'all':
+            df = df[list(self.dict[select]) + ['Image']]
+        df.dropna(inplace=True)
+        X_s = df['Image'].values
+        X = [np.fromstring(iterm, sep=' ').reshape((96, 96)) for iterm in X_s]
+        df = df[df.columns[:-1]]
+        y = df.values
+        label_names = list(df.columns.values)
+        X = np.asarray(X)
+        y = np.asarray(y)
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1)
 
+        # write to file with the name holds
+        save_path = osp.dirname(osp.abspath(path))
+        train_path = osp.join(save_path, 'train_'+select)
+        val_path = osp.join(save_path, 'val_'+select)
+        if not osp.exists(train_path):
+            os.mkdir(train_path)
+        if not osp.exists(val_path):
+            os.mkdir(val_path)
+        train_list = []
+        for it in range(X_train.shape[0]):
+            save_name_x = osp.join(train_path, str(it)+'x.txt')
+            save_name_y = osp.join(train_path, str(it)+'y.txt')
+            train_list.append(save_name_x + ' ' + save_name_y)
+            x = X_train[it, :, :]
+            y = y_train[it, :]
+            np.savetxt(save_name_x, x)
+            np.savetxt(save_name_y, y)
+        val_list = []
+        for it in range(X_val.shape[0]):
+            save_name_x = osp.join(val_path, str(it) + 'x.txt')
+            save_name_y = osp.join(val_path, str(it) + 'y.txt')
+            val_list.append(save_name_x + ' ' + save_name_y)
+            x = X_val[it, :, :]
+            y = y_val[it, :]
+            np.savetxt(save_name_x, x)
+            np.savetxt(save_name_y, y)
+
+        shuffle(train_list)
+        shuffle(val_list)
+        with open(osp.join(save_path, 'train.txt'), 'w') as f:
+            f.write("\n".join(train_list))
+            f.close()
+        with open(osp.join(save_path, 'val.txt'), 'w') as f:
+            f.write("\n".join((val_list)))
+            f.close()
+
+
+    def loadImgAndLabel(self, path):
+        paths = path.split(' ')
+        img_path = paths[0]
+        label_path = paths[1]
+        img = np.loadtxt(img_path)
+        label = np.loadtxt(label_path)
+        return img, label
+
+
+
+SimpleTools().splitTrainingDataToFile('./data/training.csv')
 
 
 
