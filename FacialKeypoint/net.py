@@ -81,18 +81,18 @@ def vggStyleNet(data_path = None, split='train', batch_size=128, im_shape=(96, 9
     # below the self define
     net.fc1, net.relu1 = fc_relu(net.pool3, nout=500)
     if split == 'train':
-        net.drop1 = fc2input = L.Dropout(net.relu1, in_place=True, threshold=0.5)
+        net.drop1 = fc2input = L.Dropout(net.relu1, in_place=True, dropout_ratio=0.5)
     else:
         fc2input = net.relu1
-    #net.fc2, net.relu2 = fc_relu(fc2input, nout=500)
-    #if split == 'train':
-    #    net.drop2 = fc3input = L.Dropout(net.relu2, in_place=True)
-    #else:
-    #    fc3input = net.relu2
-    net.fc2 = L.InnerProduct(fc2input, num_output=num_output, param=params)
+    net.fc2, net.relu2 = fc_relu(fc2input, nout=500)
+    if split == 'train':
+        net.drop2 = fc3input = L.Dropout(net.relu2, in_place=True, dropout_ratio=0.5)
+    else:
+        fc3input = net.relu2
+    net.fc3 = L.InnerProduct(fc3input, num_output=num_output, param=params)
     # test and val have the same loss
     if not split == 'deploy':
-        net.loss = L.EuclideanLoss(net.fc2, net.label)
+        net.loss = L.EuclideanLoss(net.fc3, net.label)
 
     file_name = osp.join(model_dir, split+'_vgg_' + selection+'.prototxt')
     with open(file_name, 'w') as f:
@@ -122,12 +122,12 @@ def normalStyleNet(data_path = None, split='train', batch_size=128, im_shape=(96
     net.pool3 = max_pooling(net.relu3, ks=2)
     net.fc4, net.relu4 = fc_relu(net.pool3, nout=500)
     if split == 'train':
-        net.drop4 = fc5input = L.Dropout(net.relu4, in_place=True, threshold=0.5)
+        net.drop4 = fc5input = L.Dropout(net.relu4, in_place=True, dropout_ratio=0.5)
     else:
         fc5input = net.relu4
     net.fc5, net.relu5 = fc_relu(fc5input, nout=500)
     if split == 'train':
-        net.drop5 = fc6input = L.Dropout(net.relu5, in_place=True, threshold=0.5)
+        net.drop5 = fc6input = L.Dropout(net.relu5, in_place=True, dropout_ratio=0.5)
     else:
         fc6input = net.relu5
     net.fc6 = L.InnerProduct(fc6input, num_output=num_output, param=params)
