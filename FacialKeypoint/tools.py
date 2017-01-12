@@ -39,6 +39,20 @@ class SimpleTools(object):
 
         self.scale = 255
         self.constant = 48
+        self.lookUpTable = ['left_eye_center_x', 'left_eye_center_y', 'right_eye_center_x',
+                            'right_eye_center_y', 'left_eye_inner_corner_x', 'left_eye_inner_corner_y',
+                            'left_eye_outer_corner_x', 'left_eye_outer_corner_y',
+                            'right_eye_inner_corner_x', 'right_eye_inner_corner_y',
+                            'right_eye_outer_corner_x', 'right_eye_outer_corner_y',
+                            'left_eyebrow_inner_end_x', 'left_eyebrow_inner_end_y',
+                            'left_eyebrow_outer_end_x', 'left_eyebrow_outer_end_y',
+                            'right_eyebrow_inner_end_x', 'right_eyebrow_inner_end_y',
+                            'right_eyebrow_outer_end_x', 'right_eyebrow_outer_end_y', 'nose_tip_x',
+                            'nose_tip_y', 'mouth_left_corner_x', 'mouth_left_corner_y',
+                            'mouth_right_corner_x', 'mouth_right_corner_y', 'mouth_center_top_lip_x',
+                            'mouth_center_top_lip_y', 'mouth_center_bottom_lip_x',
+                            'mouth_center_bottom_lip_y']
+
 
     def load_data(self, path, phase='Train', select=None):
         """
@@ -56,7 +70,7 @@ class SimpleTools(object):
         X_s = df['Image'].values
         X = [np.fromstring(iterm, sep=' ').reshape((96, 96)) for iterm in X_s]
         df = df[df.columns[:-1]] # remove the Image column
-        if not phase == 'Test':
+        if phase != 'Test':
             y = df.values
             return np.asarray(X), np.asarray(y)
         return np.asarray(X)
@@ -105,6 +119,12 @@ class SimpleTools(object):
             y = (y - self.constant) / self.constant
             return X, y
         return X
+
+    def getTruey(self, y):
+        y = y * self.constant + self.constant
+        y[y>96] = 96
+        y[y<0] = 0
+        return y
 
     def umcompress(self, X, y=None):
         X *= self.scale
@@ -225,9 +245,27 @@ class SimpleTools(object):
         label = np.loadtxt(label_path)
         return img, label
 
+    def readLists(self, path):
+        with open(path, 'rU') as f:
+            lists = f.read().split('\n')
+        return lists
+
+    def getIndex(self, feature_names):
+        index = []
+        for name in feature_names:
+            index.append(self.lookUpTable.index(name))
+        return index
+
+    def write_prediction(self, prediciton, rowid, outpath):
+        dataframe = pandas.DataFrame({'RowId':rowid, 'Location': prediciton})
+        dataframe.to_csv(outpath, index=False, header=True)
 
 
-SimpleTools().splitTrainingDataToFile('./data/training.csv')
+
+
+
+
+
 
 
 

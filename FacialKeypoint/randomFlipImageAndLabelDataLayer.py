@@ -74,12 +74,10 @@ class BatchLoader(object):
         self.random_flip = params['random_flip']
         self.cur = 0    # the current position
         self.transformer = ST()
-        # load all the data in, since it will not occupy much memory
-        self.X, self.y = self.transformer.loadHdf5Data(self.path)
-        self.total_len = self.X.shape[0]
-        self.sample_index = range(0, self.total_len)
-        shuffle(self.sample_index)
-        print 'BatchLoader loading {} images'.format(self.total_len)
+        self.datalists = self.transformer.readLists(self.path)
+        self.total_len = len(self.datalists)
+        shuffle(self.datalists)
+        print 'BatchLoader loading {} datas'.format(self.total_len)
 
 
 
@@ -93,12 +91,10 @@ class BatchLoader(object):
         if self.cur == self.total_len:
             self.cur = 0
             print 'the whole dataset traveled, shuffing the dataset'
-            shuffle(self.sample_index)
+            shuffle(self.datalists)
 
-            # load img and the y label
-        index = self.sample_index[self.cur]
-        im = self.X[index, :]
-        label = self.y[index, :]
+        #load img and the y label
+        im, label = self.transformer.loadImgAndLabel(self.datalists[self.cur])
         # do a random flip, if the random flip is set
         if self.random_flip:
             # decide whether to do flip

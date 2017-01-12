@@ -81,7 +81,6 @@ if __name__ == '__main__':
     selection = argv[1]
     style = argv[2]
     id = int(argv[3])
-    train(selection=selection, style=style, deviceid=id)
     print 'Training done, see the log and weight file'
 
 
