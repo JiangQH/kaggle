@@ -10,7 +10,7 @@ featurename = lookup[lookup.columns[2:-1]].values[:, 0]
 featureIndex = ST().getIndex(featurename)
 
 
-model_dir = './model'
+model_dir = './model/or'
 net_file = osp.join(model_dir, 'or_deploy_all.prototxt')
 weights = osp.join(model_dir, 'or__iter_30000.caffemodel')
 caffe.set_mode_cpu()
@@ -32,8 +32,8 @@ for it in range(len(test_data)):
     predictions.append(prediction)
 # get the value for prediction
 locations = [predictions[i-1][j] for i, j in zip(imageid, featureIndex)]
-ST().write_prediction(locations, rowid, './data/predict.csv')
-print 'debug'
+ST().write_prediction(locations, rowid, './data/predict_or.csv')
+print 'done'
 
 
 
