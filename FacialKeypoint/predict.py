@@ -35,7 +35,7 @@ print 'done'
 """
 
 
-def prediction(model, save_name=None):
+def prediction(model, img, save_name=None):
     model_dir = osp.join('./model/or', model)
     net_file = osp.join(model_dir, 'deploy.prototxt')
     weights = osp.join(model_dir, 'weights.caffemodel')
@@ -66,12 +66,13 @@ def cross_prediction(models, data):
         featureindex[model] = ST().getIndex(featurename)
 
     lookup = pandas.read_csv('./data/IdLookupTable.csv')
-    rowid = lookup['RowId'].valuesrowid
-    imageid = lookup['ImageId'].valuesimageid
+    rowid = lookup['RowId'].values[:50*30, ...]
+    imageid = lookup['ImageId'].values[:50*30, ...]
 
     # the prediction
     predictions = {model_name: [] for model_name in models}
     for it in range(len(data)):
+        print it
         X = data[it, :, :]
         X = ST().preprocess(X)
         for key in nets:
@@ -85,7 +86,7 @@ def cross_prediction(models, data):
             predictions[key].append(pre)
 
     # having traveled, the prediction for all
-    all_locations = [predictions['all'][i-1][j] for i, j in zip(imageid, featureindex['all'])]
+    all_locations = [] #?
     # then fill others
     for model in models:
         if model == 'all':
@@ -105,12 +106,9 @@ def cross_prediction(models, data):
 
 
 
-models = ['eye_center',  'eye_outer', 'mouth']
+models = ['all', 'eye_center',  'eye_outer', 'mouth']
 test_data = ST().load_data(path='./data/test.csv', phase='Test')
-for model in models:
-    img = test_data[0, :, :]
-    save_name = osp.join('./result/', model+'2.png')
-    prediction(model, img, save_name)
+cross_prediction(models, test_data[:50, ...])
 
 
 
