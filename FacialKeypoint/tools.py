@@ -76,7 +76,7 @@ class SimpleTools(object):
         return np.asarray(X)
 
 
-    def plot(self, X, y):
+    def plot(self, X, y, save_name=None):
         """
         plot the img and the y point in img
         :param X:
@@ -87,6 +87,8 @@ class SimpleTools(object):
         plt.imshow(X, cmap='gray')
         plt.scatter(y[0::2], y[1::2], marker='x', s=10)
         plt.show()
+        if save_name is not None:
+            plt.savefig(save_name)
 
 
     def flipImage(self, X, y, select=None):
@@ -259,6 +261,12 @@ class SimpleTools(object):
     def write_prediction(self, prediciton, rowid, outpath):
         dataframe = pandas.DataFrame({'RowId':rowid, 'Location': prediciton})
         dataframe.to_csv(outpath, index=False, header=True)
+
+    def getFeatureName(self, model_name):
+        if model_name != 'all':
+            return list(self.dict[model_name])
+        else:
+            return self.lookUpTable
 
 
 

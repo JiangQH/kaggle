@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 def parse_log(log_file):
     with open(log_file, 'r') as f:
@@ -30,16 +31,23 @@ def parse_log(log_file):
     return train_iterations, train_losses, test_iterations, test_losses
 
 
-def disp_results():
+def disp_results(file_name):
     plt.style.use('ggplot')
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     ax1.set_xlabel('Iteration')
     ax1.set_ylabel('train_loss')
     ax2.set_ylabel('val_loss')
-    train_iterations, train_loss, test_iterations, test_loss = parse_log('./model/or/or.log')
+    train_iterations, train_loss, test_iterations, test_loss = parse_log(file_name)
     ax1.plot(train_iterations, train_loss)
     ax2.plot(test_iterations, test_loss)
+    plt.show()
+    
+
+if __name__ == '__main__':
+    file = sys.argv[1]
+    disp_results(file)
+
 
 
 
