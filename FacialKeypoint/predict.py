@@ -55,19 +55,17 @@ def prediction(model, img, save_name=None):
 def cross_prediction(models, data):
     caffe.set_mode_cpu()
     nets = {}
-    featureindex = {}
     for model in models:
         model_dir = osp.join('./model/or', model)
         net_file = osp.join(model_dir, 'deploy.prototxt')
         weights = osp.join(model_dir, 'weights.caffemodel')
         net = caffe.Net(net_file, weights, caffe.TEST)
         nets[model] = net
-        featurename = ST().getFeatureName(model)
-        featureindex[model] = ST().getIndex(featurename)
 
     lookup = pandas.read_csv('./data/IdLookupTable.csv')
-    rowid = lookup['RowId'].values[:50*30, ...]
-    imageid = lookup['ImageId'].values[:50*30, ...]
+    rowid = lookup['RowId'].values
+    imageid = lookup['ImageId'].values
+    feature_name = lookup['FeatureName'].values
 
     # the prediction
     predictions = {model_name: [] for model_name in models}
@@ -85,18 +83,16 @@ def cross_prediction(models, data):
             pre = ST().getTruey(pre)
             predictions[key].append(pre)
 
-    # having traveled, the prediction for all
-    all_locations = [] #?
-    # then fill others
-    for model in models:
-        if model == 'all':
-            continue
-        model_pre = [predictions[model][i-1][j] for i, j in zip(imageid, featureindex[model])]
-        # replace the index
-        all_locations[:, featureindex[model]] = model_pre
+    locations = []
+    for it in range(len(imageid)):
+        im_id = imageid[it] - 1
+        fea_name = feature_name[it]
+        # get the model and corresponding index
+        model_name, index = ST().getModelAndIndex(fea_name)
+        locations.append(predictions[model_name][im_id][index])
 
     # save
-    ST().write_prediction(all_locations, rowid, './data/predict_combine_or.csv')
+    ST().write_prediction(locations, rowid, './data/predict_combine_or.csv')
 
 
 
@@ -108,7 +104,7 @@ def cross_prediction(models, data):
 
 models = ['all', 'eye_center',  'eye_outer', 'mouth']
 test_data = ST().load_data(path='./data/test.csv', phase='Test')
-cross_prediction(models, test_data[:50, ...])
+cross_prediction(models, test_data)
 
 
 

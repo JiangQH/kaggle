@@ -39,19 +39,32 @@ class SimpleTools(object):
 
         self.scale = 255
         self.constant = 48
-        self.lookUpTable = ['left_eye_center_x', 'left_eye_center_y', 'right_eye_center_x',
-                            'right_eye_center_y', 'left_eye_inner_corner_x', 'left_eye_inner_corner_y',
-                            'left_eye_outer_corner_x', 'left_eye_outer_corner_y',
-                            'right_eye_inner_corner_x', 'right_eye_inner_corner_y',
-                            'right_eye_outer_corner_x', 'right_eye_outer_corner_y',
-                            'left_eyebrow_inner_end_x', 'left_eyebrow_inner_end_y',
-                            'left_eyebrow_outer_end_x', 'left_eyebrow_outer_end_y',
-                            'right_eyebrow_inner_end_x', 'right_eyebrow_inner_end_y',
-                            'right_eyebrow_outer_end_x', 'right_eyebrow_outer_end_y', 'nose_tip_x',
-                            'nose_tip_y', 'mouth_left_corner_x', 'mouth_left_corner_y',
-                            'mouth_right_corner_x', 'mouth_right_corner_y', 'mouth_center_top_lip_x',
-                            'mouth_center_top_lip_y', 'mouth_center_bottom_lip_x',
-                            'mouth_center_bottom_lip_y']
+        self.lookuptables = {
+                            'eye_center': ['left_eye_center_x', 'left_eye_center_y',
+                             'right_eye_center_x', 'right_eye_center_y'],
+                            'eye_outer': ['left_eyebrow_inner_end_x', 'left_eyebrow_inner_end_y',
+                                    'right_eyebrow_inner_end_x', 'right_eyebrow_inner_end_y',
+                                    'left_eyebrow_outer_end_x', 'left_eyebrow_outer_end_y',
+                                    'right_eyebrow_outer_end_x', 'right_eyebrow_outer_end_y'],
+                            'mouth': ['mouth_left_corner_x', 'mouth_left_corner_y',
+                                'mouth_right_corner_x', 'mouth_right_corner_y',
+                                'mouth_center_top_lip_x', 'mouth_center_top_lip_y',],
+                            }
+
+        self.alls = ['left_eye_center_x', 'left_eye_center_y', 'right_eye_center_x',
+                    'right_eye_center_y', 'left_eye_inner_corner_x', 'left_eye_inner_corner_y',
+                    'left_eye_outer_corner_x', 'left_eye_outer_corner_y',
+                    'right_eye_inner_corner_x', 'right_eye_inner_corner_y',
+                    'right_eye_outer_corner_x', 'right_eye_outer_corner_y',
+                    'left_eyebrow_inner_end_x', 'left_eyebrow_inner_end_y',
+                    'left_eyebrow_outer_end_x', 'left_eyebrow_outer_end_y',
+                    'right_eyebrow_inner_end_x', 'right_eyebrow_inner_end_y',
+                    'right_eyebrow_outer_end_x', 'right_eyebrow_outer_end_y', 'nose_tip_x',
+                    'nose_tip_y', 'mouth_left_corner_x', 'mouth_left_corner_y',
+                    'mouth_right_corner_x', 'mouth_right_corner_y', 'mouth_center_top_lip_x',
+                    'mouth_center_top_lip_y', 'mouth_center_bottom_lip_x',
+                    'mouth_center_bottom_lip_y']
+
 
 
     def load_data(self, path, phase='Train', select=None):
@@ -262,11 +275,13 @@ class SimpleTools(object):
         dataframe = pandas.DataFrame({'RowId':rowid, 'Location': prediciton})
         dataframe.to_csv(outpath, index=False, header=True)
 
-    def getFeatureName(self, model_name):
-        if model_name != 'all':
-            return list(self.dict[model_name])
-        else:
-            return self.lookUpTable
+
+    def getModelAndIndex(self, feature_name):
+        for key, feature_list in self.lookuptables.items():
+            if feature_name in feature_list:
+                return key, feature_list.index(feature_name)
+
+        return 'all', self.alls.index(feature_name)
 
 
 
